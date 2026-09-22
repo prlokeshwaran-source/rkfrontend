@@ -26,6 +26,18 @@ import {
   Clock,
   Check,
   AlertCircle,
+  Copy,
+  FileText,
+  BarChart,
+  PieChart,
+  Award,
+  Shield,
+  Book,
+  FileImage,
+  ExternalLink,
+  Mail,
+  MapPin,
+  UserCheck,
 } from 'lucide-react';
 
 export const Icons = {
@@ -56,6 +68,18 @@ export const Icons = {
   Clock,
   Check,
   AlertCircle,
+  Copy,
+  FileText,
+  BarChart,
+  PieChart,
+  Award,
+  Shield,
+  Book,
+  FileImage,
+  ExternalLink,
+  Mail,
+  MapPin,
+  UserCheck,
 };
 
 export const NAV_ICONS = {

@@ -20,6 +20,10 @@ import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import CallsPage from './pages/CallsPage';
 import UserRolePage from './pages/UserRolePage';
+import CustomerListPage from './pages/Users/CustomerListPage';
+import AddCustomerPage from './pages/Users/AddCustomerPage';
+import WalletPage from './pages/Users/WalletPage';
+import TrainingPage from './pages/Users/TrainingPage';
 
 import './styles/variables.css';
 import './styles/auth.css';
@@ -83,6 +87,10 @@ function App() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="calls" element={<CallsPage />} />
             <Route path="roles" element={<UserRolePage />} />
+            <Route path="customers" element={<CustomerListPage />} />
+            <Route path="customers/add" element={<AddCustomerPage />} />
+            <Route path="wallet" element={<WalletPage />} />
+            <Route path="training" element={<TrainingPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

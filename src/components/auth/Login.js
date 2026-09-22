@@ -5,7 +5,7 @@ import Logo from '../common/Logo';
 import { Icons } from '../common/Icons';
 
 const Login = () => {
-  const [emailOrUsername, setEmailOrUsername] = useState('');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState('');
@@ -16,8 +16,8 @@ const Login = () => {
   const from = location.state?.from?.pathname || '/';
 
   const validate = () => {
-    if (!emailOrUsername.trim()) {
-      setFormError('Email or username is required');
+    if (!emailOrPhone.trim()) {
+      setFormError('Email or phone is required');
       return false;
     }
     if (!password) {
@@ -35,7 +35,7 @@ const Login = () => {
     if (!validate()) return;
 
     try {
-      await login({ emailOrUsername, password });
+      await login({ emailOrPhone, password });
       navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
@@ -61,19 +61,19 @@ const Login = () => {
             <label htmlFor="emailOrUsername" className="form-label">
               Email or Username
             </label>
-            <input
-              id="emailOrUsername"
-              type="text"
-              className={`form-input ${formError ? 'form-input-error' : ''}`}
-              value={emailOrUsername}
-              onChange={(e) => {
-                setEmailOrUsername(e.target.value);
-                setFormError('');
-              }}
-              placeholder="Enter your email or username"
-              autoComplete="username"
-              disabled={isLoading}
-            />
+              <input
+                id="emailOrPhone"
+                type="text"
+                className={`form-input ${formError ? 'form-input-error' : ''}`}
+                value={emailOrPhone}
+                onChange={(e) => {
+                  setEmailOrPhone(e.target.value);
+                  setFormError('');
+                }}
+                placeholder="Enter your email or phone"
+                autoComplete="username"
+                disabled={isLoading}
+              />
           </div>
 
           <div className="form-group">

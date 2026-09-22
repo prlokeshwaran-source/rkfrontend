@@ -1,190 +1,170 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icons } from '../common/Icons';
-import Modal from '../common/Modal';
 import Table from '../common/Table';
+import Modal from '../common/Modal';
+import { userApi } from '../../api/index';
+import { formatDateTime } from '../../utils/formatDate';
 
 const PERMISSIONS = [
-  'manage_users',
-  'manage_roles',
-  'manage_orders',
-  'manage_payments',
-  'manage_reports',
-  'manage_settings',
-  'manage_notifications',
-  'manage_content',
+  { key: 'manage_users', label: 'Manage Users' },
+  { key: 'manage_roles', label: 'Manage Roles' },
+  { key: 'manage_orders', label: 'Manage Orders' },
+  { key: 'manage_payments', label: 'Manage Payments' },
+  { key: 'manage_reports', label: 'Manage Reports' },
+  { key: 'manage_settings', label: 'Manage Settings' },
+  { key: 'manage_notifications', label: 'Manage Notifications' },
+  { key: 'manage_content', label: 'Manage Content' },
+  { key: 'manage_training', label: 'Manage Training' },
+  { key: 'manage_wallet', label: 'Manage Wallet' },
 ];
 
-const ROLES_DATA = [
-  {
-    id: 1,
-    name: 'Super Admin',
-    description: 'Full access to all features and settings',
-    permissions: PERMISSIONS,
-    userCount: 1,
-    isSystem: true,
-  },
-  {
-    id: 2,
-    name: 'Admin',
-    description: 'Administrative access to most features',
-    permissions: [
-      'manage_users',
-      'manage_orders',
-      'manage_payments',
-      'manage_reports',
-    ],
-    userCount: 3,
-    isSystem: false,
-  },
-  {
-    id: 3,
-    name: 'Manager',
-    description: 'Manage team and orders',
-    permissions: [
-      'manage_orders',
-      'manage_reports',
-      'manage_notifications',
-    ],
-    userCount: 8,
-    isSystem: false,
-  },
-  {
-    id: 4,
-    name: 'Staff',
-    description: 'Basic access for daily operations',
-    permissions: [
-      'manage_orders',
-      'manage_payments',
-    ],
-    userCount: 15,
-    isSystem: false,
-  },
+const ROLES = [
+  { value: 'ROLE_SUPER_ADMIN', label: 'Super Admin' },
+  { value: 'ROLE_ADMIN', label: 'Admin' },
+  { value: 'ROLE_MANAGER', label: 'Manager' },
+  { value: 'ROLE_USER', label: 'User' },
 ];
 
 const UserRoleScreen = () => {
-  const [roles, setRoles] = useState(ROLES_DATA);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', permissions: [] });
+  const [editingUser, setEditingUser] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'ROLE_USER',
+    status: 'PENDING',
+  });
 
-  const handleAdd = () => {
-    setEditingRole(null);
-    setFormData({ name: '', description: '', permissions: [] });
-    setIsModalOpen(true);
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const data = await userApi.getAll();
+      setUsers(data || []);
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEdit = (role) => {
-    setEditingRole(role);
+  const handleAdd = () => {
+    setEditingUser(null);
     setFormData({
-      name: role.name,
-      description: role.description,
-      permissions: [...role.permissions],
+      name: '',
+      email: '',
+      phone: '',
+      password: '',
+      role: 'ROLE_USER',
+      status: 'PENDING',
     });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (role) => {
-    if (window.confirm(`Delete role "${role.name}"?`)) {
-      setRoles(roles.filter((r) => r.id !== role.id));
-    }
+  const handleEdit = (user) => {
+    setEditingUser(user);
+    setFormData({
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      password: '',
+      role: user.roles?.[0]?.name || 'ROLE_USER',
+      status: user.status || 'ACTIVE',
+    });
+    setIsModalOpen(true);
   };
 
-  const handleSave = () => {
-    if (!formData.name.trim()) {
-      alert('Role name is required');
+  const handleSave = async () => {
+    if (!formData.name.trim() || !formData.email.trim()) {
+      alert('Name and email are required');
       return;
     }
 
-    if (editingRole) {
-      setRoles(
-        roles.map((r) =>
-          r.id === editingRole.id
-            ? { ...r, name: formData.name, description: formData.description, permissions: formData.permissions }
-            : r
-        )
-      );
-    } else {
-      const newRole = {
-        id: Date.now(),
-        name: formData.name,
-        description: formData.description,
-        permissions: formData.permissions,
-        userCount: 0,
-        isSystem: false,
-      };
-      setRoles([...roles, newRole]);
+    try {
+      if (editingUser) {
+        await userApi.update(editingUser.id, {
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email,
+          status: formData.status,
+          roles: [{ name: formData.role }],
+        });
+      } else {
+        await userApi.create({
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email,
+          password: formData.password,
+        });
+      }
+      setIsModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      console.error('Save failed:', err);
+      alert(err.response?.data?.message || 'Failed to save user');
     }
-    setIsModalOpen(false);
   };
 
-  const handlePermissionChange = (permission) => {
-    if (formData.permissions.includes(permission)) {
-      setFormData({
-        ...formData,
-        permissions: formData.permissions.filter((p) => p !== permission),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        permissions: [...formData.permissions, permission],
-      });
-    }
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      ACTIVE: { className: 'status-active', label: 'Active' },
+      PENDING: { className: 'status-pending', label: 'Pending' },
+      INACTIVE: { className: 'status-inactive', label: 'Inactive' },
+      REJECTED: { className: 'status-rejected', label: 'Rejected' },
+    };
+    const config = statusMap[status] || statusMap.PENDING;
+    return <span className={`status-badge ${config.className}`}>{config.label}</span>;
   };
 
   const columns = [
-    { key: 'name', header: 'Role Name' },
-    { key: 'description', header: 'Description' },
+    { key: 'name', header: 'Name' },
+    { key: 'email', header: 'Email' },
+    { key: 'phone', header: 'Phone' },
     {
-      key: 'permissions',
-      header: 'Permissions',
-      render: (value) => (
-        <span style={{ color: 'var(--secondary-text)', fontSize: '0.875rem' }}>
-          {value.length} permissions
-        </span>
-      ),
+      key: 'roles',
+      header: 'Role',
+      render: (roles) => roles?.[0]?.name?.replace('ROLE_', '').replace('_', ' ') || 'User',
     },
-    { key: 'userCount', header: 'Users', align: 'center' },
+    { key: 'status', header: 'Status', render: (value) => getStatusBadge(value) },
+    { key: 'createdAt', header: 'Created', render: (value) => formatDateTime(value) },
   ];
 
   return (
     <div className="user-role-screen">
       <div className="page-header">
-        <h1 className="page-title">User Roles</h1>
+        <h1 className="page-title">User Management</h1>
         <button className="btn btn-primary" onClick={handleAdd}>
           <Icons.Plus size={18} style={{ marginRight: '0.5rem' }} />
-          Add Role
+          Add User
         </button>
       </div>
 
-      <Table
-        columns={columns}
-        data={roles}
-        actions={(role) => (
-          <>
-            <button
-              className="btn-action btn-view"
-              title="View"
-              onClick={() => handleEdit(role)}
-            >
+      {loading ? (
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          data={users}
+          actions={(user) => (
+            <button className="btn-action btn-view" title="Edit" onClick={() => handleEdit(user)}>
               <Icons.Edit size={14} />
             </button>
-            {!role.isSystem && (
-              <button
-                className="btn-action btn-reject"
-                title="Delete"
-                onClick={() => handleDelete(role)}
-              >
-                <Icons.Trash2 size={14} />
-              </button>
-            )}
-          </>
-        )}
-      />
+          )}
+        />
+      )}
 
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingRole ? 'Edit Role' : 'Add New Role'}
+        title={editingUser ? 'Edit User' : 'Add New User'}
         footer={
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
@@ -198,79 +178,83 @@ const UserRoleScreen = () => {
         }
       >
         <form
-          className="role-form"
+          className="user-form"
           onSubmit={(e) => {
             e.preventDefault();
             handleSave();
           }}
         >
           <div className="form-group">
-            <label className="form-label">Role Name</label>
+            <label className="form-label">Full Name</label>
             <input
               className="form-input"
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              placeholder="Enter role name"
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Enter full name"
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Description</label>
-            <textarea
+            <label className="form-label">Email</label>
+            <input
               className="form-input"
-              rows="3"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="Enter role description"
-              style={{ resize: 'vertical' }}
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="Enter email"
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Permissions</label>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: '0.5rem',
-              }}
-            >
-              {PERMISSIONS.map((permission) => {
-                const isChecked = formData.permissions.includes(permission);
-                return (
-                  <label
-                    key={permission}
-                    className="permission-checkbox"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.5rem',
-                      border: isChecked
-                        ? '2px solid var(--primary)'
-                        : '1px solid var(--border)',
-                      borderRadius: '0.5rem',
-                      backgroundColor: isChecked ? 'rgba(79, 43, 183, 0.05)' : 'var(--card)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handlePermissionChange(permission)}
-                      style={{ accentColor: 'var(--primary)' }}
-                    />
-                    <span style={{ fontSize: '0.875rem' }}>
-                      {permission.replace(/_/g, ' ')}
-                    </span>
-                  </label>
-                );
-              })}
+            <label className="form-label">Phone</label>
+            <input
+              className="form-input"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="Enter phone"
+            />
+          </div>
+
+          {!editingUser && (
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                className="form-input"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Enter password"
+              />
             </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Role</label>
+            <select
+              className="filter-select"
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            >
+              {ROLES.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Status</label>
+            <select
+              className="filter-select"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="PENDING">Pending</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
           </div>
         </form>
       </Modal>

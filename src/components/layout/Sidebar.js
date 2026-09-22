@@ -6,17 +6,18 @@ import { useAuth } from '../../context/AuthContext';
 
 const ALL_NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/' },
-  { id: 'members', label: 'Member Management', icon: 'members', path: '/members' },
-  { id: 'approvals', label: 'User Approval', icon: 'approval', path: '/approvals' },
+  { id: 'customers', label: 'Customers', icon: 'users', path: '/customers' },
   { id: 'orders', label: 'Order Management', icon: 'orders', path: '/orders' },
-  { id: 'payments', label: 'Payment Management', icon: 'payments', path: '/payments' },
-  { id: 'reports', label: 'Reports', icon: 'reports', path: '/reports' },
+  { id: 'payments', label: 'Payments', icon: 'payments', path: '/payments' },
+  { id: 'wallet', label: 'Wallet', icon: 'dollar', path: '/wallet' },
+  { id: 'training', label: 'Training', icon: 'book', path: '/training' },
   { id: 'notifications', label: 'Notifications', icon: 'notifications', path: '/notifications' },
+  { id: 'approvals', label: 'User Approval', icon: 'approval', path: '/approvals' },
+  { id: 'roles', label: 'User Roles', icon: 'settings', path: '/roles' },
+  { id: 'reports', label: 'Reports', icon: 'reports', path: '/reports' },
   { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
   { id: 'profile', label: 'Profile', icon: 'profile', path: '/profile' },
-  { id: 'settings', label: 'Settings', icon: 'settings', path: '/settings' },
   { id: 'calls', label: 'Customer Calls', icon: 'calls', path: '/calls' },
-  { id: 'roles', label: 'User Roles', icon: 'approval', path: '/roles' },
 ];
 
 const Sidebar = ({ onMobileClose }) => {

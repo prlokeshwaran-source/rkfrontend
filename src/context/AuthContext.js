@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { authApi, dashboardApi, walletApi, notificationApi } from '../api/index';
 import tokenStorage from '../utils/tokenStorage';
 import sessionManager from '../utils/sessionManager';
 
 const AuthContext = createContext();
 
-const MOCK_ADMIN = {
+const DEFAULT_USER = {
   id: 1,
   name: 'Admin User',
   email: 'admin@example.com',
+  phone: '555-1234',
   role: 'admin',
   avatar: null,
 };
@@ -27,15 +29,22 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       if (tokenStorage.isTokenValid()) {
-        const storedUser = tokenStorage.getToken();
-        if (storedUser === 'mock_admin_token') {
-          setUser(MOCK_ADMIN);
+        try {
+          const response = await authApi.getProfile();
+          const userData = response.data || response;
+          setUser(userData);
           setIsAuthenticated(true);
-        } else {
+        } catch (err) {
+          console.error('Session validation failed:', err);
           tokenStorage.clearStorage();
+          setIsAuthenticated(false);
+          setUser(null);
         }
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
       }
       setIsLoading(false);
     };
@@ -60,18 +69,25 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setError(null);
     try {
-      if (credentials.emailOrUsername === '' || credentials.password === '') {
-        throw new Error('Please fill in all fields');
-      }
-      if (credentials.password.length < 3) {
-        throw new Error('Invalid credentials');
-      }
-      tokenStorage.setToken('mock_admin_token', 3600);
-      setUser(MOCK_ADMIN);
+      const response = await authApi.login(credentials.emailOrPhone, credentials.password);
+      const { accessToken, refreshToken, name, email, phone, role } = response;
+
+      tokenStorage.setToken(accessToken, 3600);
+      tokenStorage.setRefreshToken(refreshToken);
+
+      const userData = {
+        id: Date.now(),
+        name: name || email,
+        email,
+        phone,
+        role,
+      };
+      setUser(userData);
       setIsAuthenticated(true);
-      return MOCK_ADMIN;
+      return userData;
     } catch (err) {
-      setError(err.message || 'Login failed');
+      const message = err.response?.data?.message || 'Login failed';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -79,37 +95,18 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const loginAdmin = useCallback(async (credentials) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      if (credentials.email === '' || credentials.password === '') {
-        throw new Error('Please fill in all fields');
-      }
-      if (credentials.password.length < 3) {
-        throw new Error('Invalid admin credentials');
-      }
-      tokenStorage.setToken('mock_admin_token', 3600);
-      setUser(MOCK_ADMIN);
-      setIsAuthenticated(true);
-      return MOCK_ADMIN;
-    } catch (err) {
-      setError(err.message || 'Admin login failed');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    return login(credentials);
+  }, [login]);
 
   const sendOtp = useCallback(async (phoneOrEmail) => {
     setIsLoading(true);
     setError(null);
     try {
-      if (!phoneOrEmail || phoneOrEmail.trim() === '') {
-        throw new Error('Phone number or email is required');
-      }
+      await authApi.sendOtp(phoneOrEmail);
       return true;
     } catch (err) {
-      setError(err.message || 'Failed to send OTP');
+      const message = err.response?.data?.message || 'Failed to send OTP';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -120,15 +117,29 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setError(null);
     try {
-      if (!otpPayload.otp || otpPayload.otp.length < 4) {
-        throw new Error('Invalid OTP');
-      }
-      tokenStorage.setToken('mock_admin_token', 3600);
-      setUser(MOCK_ADMIN);
+      const response = await authApi.verifyOtp(
+        otpPayload.phoneOrEmail,
+        otpPayload.otp,
+        { password: otpPayload.password, name: otpPayload.name }
+      );
+      const { accessToken, refreshToken, name, email, phone, role } = response;
+
+      tokenStorage.setToken(accessToken, 3600);
+      tokenStorage.setRefreshToken(refreshToken);
+
+      const userData = {
+        id: Date.now(),
+        name: name || email,
+        email,
+        phone,
+        role,
+      };
+      setUser(userData);
       setIsAuthenticated(true);
-      return MOCK_ADMIN;
+      return userData;
     } catch (err) {
-      setError(err.message || 'Invalid OTP');
+      const message = err.response?.data?.message || 'Invalid OTP';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -139,7 +150,7 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setError(null);
     try {
-      if (!email || !email.includes('@')) {
+      if (!email.includes('@')) {
         throw new Error('Please enter a valid email address');
       }
       return true;
@@ -155,9 +166,6 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setError(null);
     try {
-      if (!resetPayload.token || resetPayload.token.trim() === '') {
-        throw new Error('Reset token is required');
-      }
       if (!resetPayload.password || resetPayload.password.length < 8) {
         throw new Error('Password must be at least 8 characters');
       }
@@ -177,13 +185,14 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setError(null);
     try {
+      await authApi.logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
       tokenStorage.clearStorage();
       sessionManager.stopSessionCheck();
       setUser(null);
       setIsAuthenticated(false);
-    } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
       setIsLoading(false);
     }
   }, []);
@@ -214,5 +223,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+export { dashboardApi, walletApi, notificationApi };
 export default AuthContext;
-
