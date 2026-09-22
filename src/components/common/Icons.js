@@ -1,0 +1,120 @@
+import {
+  LayoutDashboard,
+  Users,
+  ClipboardCheck,
+  Package,
+  CreditCard,
+  BarChart3,
+  Bell,
+  Settings,
+  User,
+  Phone,
+  Eye,
+  EyeOff,
+  Search,
+  Edit,
+  Trash2,
+  Plus,
+  Save,
+  X,
+  ChevronLeft,
+  Menu,
+  LogOut,
+  Calendar,
+  DollarSign,
+  ShoppingCart,
+  Clock,
+  Check,
+  AlertCircle,
+} from 'lucide-react';
+
+export const Icons = {
+  LayoutDashboard,
+  Users,
+  ClipboardCheck,
+  Package,
+  CreditCard,
+  BarChart3,
+  Bell,
+  Settings,
+  User,
+  Phone,
+  Eye,
+  EyeOff,
+  Search,
+  Edit,
+  Trash2,
+  Plus,
+  Save,
+  X,
+  ChevronLeft,
+  Menu,
+  LogOut,
+  Calendar,
+  DollarSign,
+  ShoppingCart,
+  Clock,
+  Check,
+  AlertCircle,
+};
+
+export const NAV_ICONS = {
+  dashboard: LayoutDashboard,
+  members: Users,
+  approval: ClipboardCheck,
+  orders: Package,
+  payments: CreditCard,
+  reports: BarChart3,
+  notifications: Bell,
+  settings: Settings,
+  profile: User,
+  calls: Phone,
+};
+
+export const ACTION_ICONS = {
+  eye: Eye,
+  eyeOff: EyeOff,
+  search: Search,
+  edit: Edit,
+  trash: Trash2,
+  plus: Plus,
+  save: Save,
+  close: X,
+  back: ChevronLeft,
+  menu: Menu,
+  logout: LogOut,
+  calendar: Calendar,
+  dollar: DollarSign,
+  cart: ShoppingCart,
+  clock: Clock,
+  check: Check,
+  alert: AlertCircle,
+};
+
+export const getStatusIcon = (status) => {
+  const iconMap = {
+    active: Check,
+    approved: Check,
+    completed: Check,
+    received: Check,
+    pending: Clock,
+    inactive: X,
+    processing: ShoppingCart,
+    cancelled: X,
+    rejected: X,
+  };
+  return iconMap[status?.toLowerCase()] || Clock;
+};
+
+export const getActivityIcon = (type) => {
+  const iconMap = {
+    member: Users,
+    order: Package,
+    payment: CreditCard,
+    approval: ClipboardCheck,
+  };
+  return iconMap[type] || Bell;
+};
+
+export default Icons;
+
