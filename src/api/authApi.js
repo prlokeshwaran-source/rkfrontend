@@ -1,4 +1,4 @@
-import apiClient from './index';
+import { apiClient } from './apiClient';
 
 const authApi = {
   login(emailOrPhone, password) {
@@ -318,5 +318,3 @@ export {
   userApi,
   membershipApi,
 };
-
-export default apiClient;
