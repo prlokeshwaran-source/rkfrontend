@@ -1,37 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../common/Icons';
-import { dashboardApi, walletApi, notificationApi } from '../../api/index';
-import { formatCurrency, formatDateTime } from '../../utils/formatDate';
+import { dashboardApi, walletApi } from '../../api/index';
+import { formatCurrency } from '../../utils/formatDate';
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [walletData, setWalletData] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [dashRes, walletRes, notifRes] = await Promise.allSettled([
-          dashboardApi.getUserDashboard(),
-          walletApi.getWallet(),
-          notificationApi.getUnreadCount(),
-        ]);
+      const [dashRes, walletRes] = await Promise.allSettled([
+        dashboardApi.getUserDashboard(),
+        walletApi.getWallet(),
+      ]);
 
-        if (dashRes.status === 'fulfilled') {
-          setDashboardData(dashRes.value);
-        }
-        if (walletRes.status === 'fulfilled') {
-          setWalletData(walletRes.value);
-        }
-        if (notifRes.status === 'fulfilled') {
-          setUnreadCount(notifRes.value.data || 0);
-        }
-      } catch (err) {
-        setError('Failed to load dashboard data');
-      } finally {
+      if (dashRes.status === 'fulfilled') {
+        setDashboardData(dashRes.value);
+      }
+      if (walletRes.status === 'fulfilled') {
+        setWalletData(walletRes.value);
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard:', err);
+    } finally {
         setLoading(false);
       }
     };

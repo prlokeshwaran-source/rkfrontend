@@ -5,19 +5,6 @@ import Modal from '../common/Modal';
 import { userApi } from '../../api/index';
 import { formatDateTime } from '../../utils/formatDate';
 
-const PERMISSIONS = [
-  { key: 'manage_users', label: 'Manage Users' },
-  { key: 'manage_roles', label: 'Manage Roles' },
-  { key: 'manage_orders', label: 'Manage Orders' },
-  { key: 'manage_payments', label: 'Manage Payments' },
-  { key: 'manage_reports', label: 'Manage Reports' },
-  { key: 'manage_settings', label: 'Manage Settings' },
-  { key: 'manage_notifications', label: 'Manage Notifications' },
-  { key: 'manage_content', label: 'Manage Content' },
-  { key: 'manage_training', label: 'Manage Training' },
-  { key: 'manage_wallet', label: 'Manage Wallet' },
-];
-
 const ROLES = [
   { value: 'ROLE_SUPER_ADMIN', label: 'Super Admin' },
   { value: 'ROLE_ADMIN', label: 'Admin' },

@@ -5,15 +5,6 @@ import sessionManager from '../utils/sessionManager';
 
 const AuthContext = createContext();
 
-const DEFAULT_USER = {
-  id: 1,
-  name: 'Admin User',
-  email: 'admin@example.com',
-  phone: '555-1234',
-  role: 'admin',
-  avatar: null,
-};
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

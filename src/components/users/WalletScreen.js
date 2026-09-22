@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from '../common/Icons';
-import { walletApi, notificationApi } from '../../api/index';
+import { walletApi } from '../../api/index';
 import { formatCurrency, formatDateTime } from '../../utils/formatDate';
 
 const WalletScreen = () => {

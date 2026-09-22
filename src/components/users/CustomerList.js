@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Icons } from '../common/Icons';
 import Table from '../common/Table';
 import SearchFilter from '../common/SearchFilter';
-import StatusBadge from '../common/StatusBadge';
-import { customerApi, followupApi } from '../../api/index';
+import { customerApi } from '../../api/index';
 import { formatDateTime } from '../../utils/formatDate';
 
 const CUSTOMER_STATUS_CONFIG = {
@@ -18,7 +17,6 @@ const CustomerList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [followups, setFollowups] = useState([]);
 
   useEffect(() => {
     fetchData();
@@ -26,16 +24,10 @@ const CustomerList = () => {
 
   const fetchData = async () => {
     try {
-      const [custRes, folRes] = await Promise.allSettled([
-        customerApi.getAll(),
-        followupApi.getToday(),
-      ]);
+      const custRes = await customerApi.getAll();
 
-      if (custRes.status === 'fulfilled') {
-        setCustomers(custRes.value || []);
-      }
-      if (folRes.status === 'fulfilled') {
-        setFollowups(folRes.value || []);
+      if (custRes) {
+        setCustomers(custRes || []);
       }
     } catch (err) {
       console.error('Failed to fetch data:', err);
