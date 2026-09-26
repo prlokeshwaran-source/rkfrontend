@@ -175,9 +175,6 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(false);
     }
   }, []);
-      setIsLoading(false);
-    }
-  }, []);
 
   const forgotPassword = useCallback(async (email) => {
     setIsLoading(true);
