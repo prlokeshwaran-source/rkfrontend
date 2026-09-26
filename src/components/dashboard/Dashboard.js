@@ -33,7 +33,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, []);
+  }, [userId]);
 
   if (loading) {
     return (

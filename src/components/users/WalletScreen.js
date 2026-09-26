@@ -11,7 +11,7 @@ const WalletScreen = () => {
 
   useEffect(() => {
     fetchWallet();
-  }, []);
+  }, [userId]);
 
   const fetchWallet = async () => {
     try {
