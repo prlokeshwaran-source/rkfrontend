@@ -38,7 +38,9 @@ const MemberList = () => {
   };
 
   const handleDelete = (member) => {
-    window.confirm(`Delete ${member.name}?`);
+    if (window.confirm(`Delete ${member.name}?`)) {
+      console.log('Delete confirmed for member:', member);
+    }
   };
 
   const handleAddMember = () => {
@@ -75,7 +77,7 @@ const MemberList = () => {
         actions={(member) => (
           <>
             <button className="btn-action btn-view" title="View" onClick={() => handleView(member)}>
-              <Icons.Edit size={14} />
+              <Icons.Eye size={14} />
             </button>
             <button className="btn-action btn-edit" title="Edit" onClick={() => handleEdit(member)}>
               <Icons.Edit size={14} />
