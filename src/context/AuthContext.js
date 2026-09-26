@@ -137,16 +137,45 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const register = useCallback(async (userData) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authApi.register(userData);
+      const { accessToken, refreshToken, name, email, phone, role } = response;
+
+      tokenStorage.setToken(accessToken, 3600);
+      tokenStorage.setRefreshToken(refreshToken);
+
+      const newUserData = {
+        id: Date.now(),
+        name: name || email,
+        email,
+        phone,
+        role,
+      };
+      setUser(newUserData);
+      setIsAuthenticated(true);
+      return newUserData;
+    } catch (err) {
+      const message = err.response?.data?.message || err.message || 'Registration failed';
+      setError(message);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const forgotPassword = useCallback(async (email) => {
     setIsLoading(true);
     setError(null);
     try {
-      if (!email.includes('@')) {
-        throw new Error('Please enter a valid email address');
-      }
+      await authApi.forgotPassword(email);
       return true;
     } catch (err) {
-      setError(err.message || 'Failed to send reset email');
+      const message = err.response?.data?.message || 'Failed to send reset email';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -157,15 +186,21 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setError(null);
     try {
+      if (!resetPayload.token) {
+        throw new Error('Reset token is required');
+      }
       if (!resetPayload.password || resetPayload.password.length < 8) {
         throw new Error('Password must be at least 8 characters');
       }
       if (resetPayload.password !== resetPayload.confirmPassword) {
         throw new Error('Passwords do not match');
       }
+
+      await authApi.resetPassword(resetPayload.token, resetPayload.password);
       return true;
     } catch (err) {
-      setError(err.message || 'Password reset failed');
+      const message = err.response?.data?.message || err.message || 'Password reset failed';
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -203,6 +238,7 @@ export const AuthProvider = ({ children }) => {
         loginAdmin,
         sendOtp,
         verifyOtp,
+        register,
         forgotPassword,
         resetPassword,
         logout,

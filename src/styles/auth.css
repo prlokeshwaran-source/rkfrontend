@@ -217,7 +217,7 @@
   background-color: var(--border);
 }
 
-.auth-divider_text {
+.auth-divider-text {
   position: absolute;
   top: -10px;
   left: 50%;

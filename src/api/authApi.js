@@ -34,6 +34,14 @@ const authApi = {
   updateProfile(userData) {
     return apiClient.put('/users', userData).then((res) => res.data);
   },
+
+  forgotPassword(email) {
+    return apiClient.post('/auth/forgot-password', { email }).then((res) => res.data);
+  },
+
+  resetPassword(token, password) {
+    return apiClient.post('/auth/reset-password', { token, password }).then((res) => res.data);
+  },
 };
 
 const dashboardApi = {
