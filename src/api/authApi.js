@@ -131,14 +131,17 @@ const paymentApi = {
 };
 
 const walletApi = {
-  getWallet() {
-    return apiClient.get('/wallet').then((res) => res.data);
+  getWallet(userId) {
+    const params = userId ? { userId } : {};
+    return apiClient.get('/wallet', { params }).then((res) => res.data);
   },
-  getBalance() {
-    return apiClient.get('/wallet/balance').then((res) => res.data);
+  getBalance(userId) {
+    const params = userId ? { userId } : {};
+    return apiClient.get('/wallet/balance', { params }).then((res) => res.data);
   },
-  getTransactions(params = {}) {
-    return apiClient.get('/wallet/transactions', { params }).then((res) => res.data);
+  getTransactions(userId, params = {}) {
+    const merged = userId ? { ...params, userId } : params;
+    return apiClient.get('/wallet/transactions', { params: merged }).then((res) => res.data);
   },
   getWalletByUserId(userId) {
     return apiClient.get(`/wallet/user/${userId}`).then((res) => res.data);

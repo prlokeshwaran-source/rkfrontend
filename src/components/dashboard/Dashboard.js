@@ -2,19 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../common/Icons';
 import { dashboardApi, walletApi } from '../../api/index';
+import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils/formatDate';
 
 const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [walletData, setWalletData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { userId } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
       const [dashRes, walletRes] = await Promise.allSettled([
         dashboardApi.getUserDashboard(),
-        walletApi.getWallet(),
+        walletApi.getWallet(userId),
       ]);
 
       if (dashRes.status === 'fulfilled') {

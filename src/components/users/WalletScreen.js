@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from '../common/Icons';
 import { walletApi } from '../../api/index';
+import { useAuth } from '../../context/AuthContext';
 import { formatCurrency, formatDateTime } from '../../utils/formatDate';
 
 const WalletScreen = () => {
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { userId } = useAuth();
 
   useEffect(() => {
     fetchWallet();
@@ -13,10 +15,11 @@ const WalletScreen = () => {
 
   const fetchWallet = async () => {
     try {
-      const data = await walletApi.getWallet();
+      const data = await walletApi.getWallet(userId);
       setWallet(data);
     } catch (err) {
       console.error('Failed to fetch wallet:', err);
+      setWallet(null);
     } finally {
       setLoading(false);
     }

@@ -25,7 +25,12 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await authApi.getProfile();
           const userData = response.data || response;
-          setUser(userData);
+          const resolvedId = userData?.id || userData?.userId || null;
+          setUser({
+            ...userData,
+            id: resolvedId || Date.now(),
+            userId: resolvedId,
+          });
           setIsAuthenticated(true);
         } catch (err) {
           console.error('Session validation failed:', err);
@@ -113,13 +118,15 @@ export const AuthProvider = ({ children }) => {
         otpPayload.otp,
         { password: otpPayload.password, name: otpPayload.name }
       );
-      const { accessToken, refreshToken, name, email, phone, role } = response;
+      const { accessToken, refreshToken, name, email, phone, role, id, userId } = response;
+      const resolvedId = id || userId || null;
 
       tokenStorage.setToken(accessToken, 3600);
       tokenStorage.setRefreshToken(refreshToken);
 
       const userData = {
-        id: Date.now(),
+        id: resolvedId || Date.now(),
+        userId: resolvedId,
         name: name || email,
         email,
         phone,
@@ -143,13 +150,15 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await authApi.register(userData);
-      const { accessToken, refreshToken, name, email, phone, role } = response;
+      const { accessToken, refreshToken, name, email, phone, role, id, userId } = response;
+      const resolvedId = id || userId || null;
 
       tokenStorage.setToken(accessToken, 3600);
       tokenStorage.setRefreshToken(refreshToken);
 
       const newUserData = {
-        id: Date.now(),
+        id: resolvedId || Date.now(),
+        userId: resolvedId,
         name: name || email,
         email,
         phone,
@@ -163,6 +172,9 @@ export const AuthProvider = ({ children }) => {
       setError(message);
       throw err;
     } finally {
+      setIsLoading(false);
+    }
+  }, []);
       setIsLoading(false);
     }
   }, []);
@@ -231,6 +243,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        userId: user?.id || user?.userId || null,
         isAuthenticated,
         isLoading,
         error,
