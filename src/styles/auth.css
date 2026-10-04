@@ -170,16 +170,6 @@
   box-shadow: 0 4px 12px rgba(79, 43, 219, 0.3);
 }
 
-.btn-otp {
-  background-color: var(--card);
-  color: var(--primary);
-  border: 1px solid var(--primary);
-}
-
-.btn-otp:hover:not(:disabled) {
-  background-color: rgba(79, 43, 219, 0.05);
-}
-
 .btn-secondary {
   background-color: var(--secondary-text);
   color: var(--card);
@@ -187,26 +177,6 @@
 
 .btn-secondary:hover:not(:disabled) {
   opacity: 0.9;
-}
-
-.btn-link-resend {
-  background: none;
-  border: none;
-  color: var(--primary);
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-  padding: 0;
-  text-decoration: underline;
-}
-
-.btn-link-resend:hover {
-  color: var(--primary-hover);
-}
-
-.otp-input {
-  text-align: center;
-  letter-spacing: 0.5rem;
-  font-size: 1.5rem;
 }
 
 .auth-divider {
@@ -264,10 +234,6 @@
   background-color: rgba(34, 197, 94, 0.1);
   color: var(--success);
   border: 1px solid var(--success);
-}
-
-.otp-resend {
-  margin: var(--spacing-sm) 0;
 }
 
 .btn-back {

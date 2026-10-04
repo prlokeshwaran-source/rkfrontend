@@ -11,8 +11,6 @@ const useSession = () => {
     clearError: auth.clearError,
     login: auth.login,
     loginAdmin: auth.loginAdmin,
-    sendOtp: auth.sendOtp,
-    verifyOtp: auth.verifyOtp,
     forgotPassword: auth.forgotPassword,
     resetPassword: auth.resetPassword,
     logout: auth.logout,

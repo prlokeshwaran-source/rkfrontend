@@ -1,113 +1,182 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import PublicRoute from './components/common/PublicRoute';
-import ProtectedRoute from './components/common/ProtectedRoute';
-import Layout from './components/layout/Layout';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Activity, ArrowDownRight, ArrowUpRight, Bell, BookOpen, BriefcaseBusiness, Check, ChevronDown, ChevronRight, CircleDollarSign, ClipboardList, CreditCard, Eye, EyeOff, Filter, Home, LogOut, Menu, Plus, Search, Settings, ShieldCheck, UserRound, Users, Wallet, X } from 'lucide-react';
+import { adminApi, memberApi, userApi } from './api/rkApi';
+import './App.css';
 
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import OTPLoginPage from './pages/OTPLoginPage';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import DashboardPage from './pages/DashboardPage';
-import MemberManagementPage from './pages/MemberManagementPage';
-import UserApprovalPage from './pages/UserApprovalPage';
-import OrderManagementPage from './pages/OrderManagementPage';
-import PaymentManagementPage from './pages/PaymentManagementPage';
-import ReportsPage from './pages/ReportsPage';
-import NotificationManagementPage from './pages/NotificationManagementPage';
-import SettingsPage from './pages/SettingsPage';
-import ProfilePage from './pages/ProfilePage';
-import CallsPage from './pages/CallsPage';
-import UserRolePage from './pages/UserRolePage';
-import CustomerListPage from './pages/Users/CustomerListPage';
-import AddCustomerPage from './pages/Users/AddCustomerPage';
-import WalletPage from './pages/Users/WalletPage';
-import TrainingPage from './pages/Users/TrainingPage';
+const ADMIN_NAV = [
+  { id: 'dashboard', label: 'Overview', icon: Home }, { id: 'members', label: 'Members', icon: Users },
+  { id: 'approvals', label: 'Approvals', icon: ShieldCheck }, { id: 'orders', label: 'Orders', icon: ClipboardList },
+  { id: 'payments', label: 'Payments', icon: CreditCard }, { id: 'reports', label: 'Reports', icon: Activity },
+  { id: 'training', label: 'Training', icon: BookOpen },
+  { id: 'notifications', label: 'Notifications', icon: Bell }, { id: 'settings', label: 'App settings', icon: Settings },
+  { id: 'profile', label: 'Profile', icon: UserRound },
+];
+const MEMBER_NAV = [
+  { id: 'dashboard', label: 'Dashboard', icon: Home }, { id: 'customers', label: 'Customers', icon: Users },
+  { id: 'wallet', label: 'Wallet', icon: Wallet }, { id: 'training', label: 'Training', icon: BookOpen },
+  { id: 'notifications', label: 'Notifications', icon: Bell }, { id: 'profile', label: 'Profile', icon: Settings },
+];
+const titleCase = (s = '') => s.replace(/([A-Z])/g, ' $1').replace(/[-_]/g, ' ').replace(/^./, c => c.toUpperCase());
+const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const date = (value) => value ? new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+const recordId = (row) => row?._id || row?.id;
+const displayName = (row) => row?.name || row?.customerName || row?.memberName || row?.title || row?.orderId || row?.email || 'Record';
+const statusTone = (value = '') => ['approved', 'paid', 'completed', 'joined', 'active'].includes(String(value).toLowerCase()) ? 'success' : ['pending', 'new', 'interested', 'processing'].includes(String(value).toLowerCase()) ? 'warning' : ['rejected', 'inactive', 'failed'].includes(String(value).toLowerCase()) ? 'danger' : 'neutral';
 
-import './styles/variables.css';
-import './styles/auth.css';
-import './styles/dashboard.css';
-import './index.css';
+function Button({ children, kind = 'primary', ...props }) { return <button className={`btn btn-${kind}`} {...props}>{children}</button>; }
+function Status({ value }) { return <span className={`status status-${statusTone(value)}`}>{value || '—'}</span>; }
+function Loading() { return <div className="loading"><i /> Loading your workspace…</div>; }
+function Notice({ children, type = 'error', onClose }) { return children ? <div className={`notice notice-${type}`} role="status">{children}{onClose && <button aria-label="Dismiss" onClick={onClose}><X size={16}/></button>}</div> : null; }
+function Empty({ title = 'Nothing here yet', detail = 'Records will appear here when available.' }) { return <div className="empty"><span className="empty-icon"><ClipboardList size={23}/></span><b>{title}</b><span>{detail}</span></div>; }
 
-function App() {
-  return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <RegisterPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/otp-login"
-            element={
-              <PublicRoute>
-                <OTPLoginPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/forgot-password"
-            element={
-              <PublicRoute>
-                <ForgotPasswordPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/reset-password"
-            element={
-              <PublicRoute>
-                <ResetPasswordPage />
-              </PublicRoute>
-            }
-          />
+function Login({ onAdmin, onUser, busy, error }) {
+  const [workspace, setWorkspace] = useState('admin');
+  const [form, setForm] = useState({ name: '', phone: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const submit = e => { e.preventDefault(); workspace === 'admin' ? onAdmin(form) : onUser(form); };
+  return <main className="login-wrap"><div className="login-art"><div className="brand-mark">RK</div><p className="eyebrow">RK SOLUTIONS</p><h1>Good work starts<br/>with a clear view.</h1><p className="muted inverse">Manage your team, customers and growth from one calm, connected workspace.</p><div className="art-orb orb-one"/><div className="art-orb orb-two"/><div className="login-foot">A better way to build lasting partnerships.</div></div><section className="login-panel"><div className="mobile-brand"><span className="brand-mark small">RK</span><b>RK Solutions</b></div><div className="login-card"><span className="eyebrow purple">WELCOME TO RK SOLUTIONS</span><h2>{workspace === 'admin' ? 'Admin sign in' : 'Member sign in'}</h2><p className="muted">{workspace === 'admin' ? 'Sign in with your office administrator credentials.' : 'Use the name and phone number registered by your administrator.'}</p><div className="role-switch"><button type="button" className={workspace === 'admin' ? 'selected' : ''} onClick={() => setWorkspace('admin')}>Admin</button><button type="button" className={workspace === 'member' ? 'selected' : ''} onClick={() => setWorkspace('member')}>Member</button></div><Notice>{error}</Notice><form onSubmit={submit} className="form-stack">{workspace === 'admin' ? <><label>Email address<input type="email" autoComplete="username" required placeholder="admin@rkfund.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label><label>Password<span className="password-field"><input type={showPassword?'text':'password'} autoComplete="current-password" required placeholder="Enter your password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/><button type="button" className="password-toggle" aria-label={showPassword?'Hide password':'Show password'} onClick={()=>setShowPassword(value=>!value)}>{showPassword?<EyeOff size={17}/>:<Eye size={17}/>}</button></span></label></> : <><label>Full name<input required autoComplete="name" placeholder="Enter your name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Phone number<input type="tel" required autoComplete="tel" pattern="[+0-9]{8,15}" placeholder="Enter your phone number" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label></>}<Button disabled={busy}>{busy ? 'Please wait…' : 'Sign in'}<ChevronRight size={17}/></Button></form><p className="login-note">{workspace === 'admin' ? 'Administrator access' : 'Admin-created approved members'} · RK Solutions</p></div></section></main>;
+}
+function Shell({ role, page, setPage, user, onLogout, children }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const nav = role === 'admin' ? ADMIN_NAV : MEMBER_NAV;
+  const heading = nav.find(n => n.id === page)?.label || (page === 'add-customer' ? 'Add customer' : page === 'profile' ? 'My profile' : titleCase(page));
+  return <div className="app-shell"><aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}><button className="brand" onClick={() => setPage('dashboard')}><span className="brand-mark">RK</span><span><b>RK Solutions</b><small>{role === 'admin' ? 'OFFICE WORKSPACE' : 'MEMBER PORTAL'}</small></span></button><div className="nav-label">WORKSPACE</div><nav>{nav.map(({id,label,icon:Icon})=><button key={id} className={`nav-item ${page===id?'active':''}`} onClick={()=>{setPage(id);setMenuOpen(false)}}><Icon size={18}/><span>{label}</span>{id==='approvals'&&<span className="nav-dot"/>}</button>)}{role==='member'&&<button className={`nav-item ${page==='add-customer'?'active':''}`} onClick={()=>{setPage('add-customer');setMenuOpen(false)}}><Plus size={18}/><span>Add customer</span></button>}</nav><div className="sidebar-bottom"><div className="help-card"><div className="help-icon"><BriefcaseBusiness size={17}/></div><b>Need a hand?</b><span>Contact your RK support team.</span></div><button className="nav-item logout" onClick={onLogout}><LogOut size={18}/><span>Sign out</span></button></div></aside>{menuOpen&&<button className="scrim" aria-label="Close menu" onClick={()=>setMenuOpen(false)}/>}<div className="main-column"><header className="topbar"><button className="icon-button menu-toggle" aria-label="Open menu" onClick={()=>setMenuOpen(!menuOpen)}><Menu size={20}/></button><div className="crumb"><span>Workspace</span><ChevronRight size={14}/><b>{heading}</b></div><div className="top-actions"><button className="icon-button notification-button" onClick={()=>setPage('notifications')} aria-label="Notifications"><Bell size={18}/><i/></button><div className="top-divider"/><button className="user-chip" onClick={()=>setPage('profile')}><span className="avatar">{(user?.name||user?.email||'R').slice(0,1).toUpperCase()}</span><span className="user-chip-text"><b>{user?.name || user?.email || (role==='admin'?'Admin staff':'Member')}</b><small>{role==='admin'?'Office staff':'Member'}</small></span><ChevronDown size={15}/></button></div></header><main className="content"><div className="page-heading"><div><span className="eyebrow purple">{role==='admin'?'ADMINISTRATION':'MEMBER PORTAL'}</span><h1>{heading}</h1><p>{page === 'dashboard' ? 'Here’s what’s happening across your workspace.' : `${heading} and keep your work moving.`}</p></div>{page==='customers'&&role==='member'&&<Button onClick={()=>setPage('add-customer')}><Plus size={17}/> Add customer</Button>}</div>{children}</main><MobileNav nav={nav} page={page} setPage={setPage}/></div></div>;
+}
+function MobileNav({nav,page,setPage}) { const items=nav.length>5?[nav[0],nav[1],nav[2],nav[3],nav[nav.length-1]]:nav; return <nav className="mobile-nav">{items.map(({id,label,icon:Icon})=><button key={id} className={page===id?'active':''} onClick={()=>setPage(id)}><Icon size={19}/><span>{label}</span></button>)}</nav>; }
 
-          <Route
-            path=""
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<DashboardPage />} />
-            <Route path="members" element={<MemberManagementPage />} />
-            <Route path="approvals" element={<UserApprovalPage />} />
-            <Route path="orders" element={<OrderManagementPage />} />
-            <Route path="payments" element={<PaymentManagementPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="notifications" element={<NotificationManagementPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="profile" element={<ProfilePage />} />
-            <Route path="calls" element={<CallsPage />} />
-            <Route path="roles" element={<UserRolePage />} />
-            <Route path="customers" element={<CustomerListPage />} />
-            <Route path="customers/add" element={<AddCustomerPage />} />
-            <Route path="wallet" element={<WalletPage />} />
-            <Route path="training" element={<TrainingPage />} />
-          </Route>
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  );
+function Stats({ items }) { return <div className="stats-grid">{items.map(({label,value,icon:Icon,note,tone='purple'})=><article className="stat-card" key={label}><div className={`stat-icon ${tone}`}><Icon size={19}/></div><span className="stat-label">{label}</span><strong>{value}</strong><small>{note}</small></article>)}</div>; }
+function Dashboard({ role, data, report, onNavigate }) {
+  const member = role !== 'admin';
+  const cards = member ? [
+    {label:'Membership referrals',value:data?.membershipReferred ?? '—',icon:Users,note:'Customers referred',tone:'green'},
+    {label:'Handbook orders',value:data?.handbookOrders ?? '—',icon:ClipboardList,note:'Orders placed',tone:'orange'},
+    {label:'Total earnings',value:money(data?.totalEarnings),icon:CircleDollarSign,note:'Commission earned',tone:'purple'},
+    {label:'Pending commission',value:money(data?.pendingCommission),icon:Wallet,note:'Awaiting approval',tone:'pink'},
+  ] : [
+    {label:'Total members',value:data?.members ?? '—',icon:Users,note:'Registered members',tone:'purple'},
+    {label:'Pending approvals',value:data?.pendingApprovals ?? '—',icon:ShieldCheck,note:'Needs your review',tone:'orange'},
+    {label:'Orders',value:data?.orders ?? '—',icon:ClipboardList,note:'Orders in the system',tone:'green'},
+    {label:'Payments',value:data?.payments ?? '—',icon:CreditCard,note:'Payment records',tone:'pink'},
+  ];
+  return <><Stats items={cards}/><div className="dashboard-grid"><section className="panel action-panel"><div className="panel-heading"><div><h2>Quick actions</h2><p>Jump into the work you do most.</p></div><span className="panel-kicker">SHORTCUTS</span></div><div className="quick-grid">{(member?[
+    ['Add a customer','Record a new referral','add-customer',Plus,'lavender'],['View customers','Track your referrals','customers',Users,'mint'],['Open wallet','Review your earnings','wallet',Wallet,'peach'],['Browse training','Explore member resources','training',BookOpen,'sky'],
+  ]:[['Review approvals','Approve pending members','approvals',ShieldCheck,'lavender'],['Manage members','View member records','members',Users,'mint'],['Review orders','Track order progress','orders',ClipboardList,'peach'],['View reports','See payment summary','reports',Activity,'sky']]).map(([title,desc,target,Icon,tone])=><button className="quick-card" key={target} onClick={()=>onNavigate(target)}><span className={`quick-icon ${tone}`}><Icon size={19}/></span><span><b>{title}</b><small>{desc}</small></span><ChevronRight size={17}/></button>)}</div></section><section className="panel summary-panel"><div className="panel-heading"><div><h2>{member?'Your progress':'Payment snapshot'}</h2><p>{member?'Build momentum one follow-up at a time.':'A quick view of recorded payments.'}</p></div><span className="summary-icon"><ArrowUpRight size={18}/></span></div>{member?<div className="progress-content"><div className="progress-ring"><span><b>{data?.membershipReferred ?? '—'}</b><small>referrals</small></span></div><div><b>Keep the momentum</b><p>Check in with your customers and update their status after each conversation.</p><button className="text-link" onClick={()=>onNavigate('customers')}>Open customer list <ChevronRight size={15}/></button></div></div>:<div className="money-summary"><div><span>Received</span><b>{money(report?.paidAmount)}</b><small><ArrowUpRight size={14}/> Paid amount</small></div><div><span>Pending</span><b className="orange-text">{money(report?.pendingAmount)}</b><small><ArrowDownRight size={14}/> Needs follow-up</small></div><div className="mini-bars"><i style={{height:'48%'}}/><i style={{height:'76%'}}/><i style={{height:'60%'}}/><i style={{height:'92%'}}/><i style={{height:'70%'}}/><i style={{height:'100%'}}/><i style={{height:'82%'}}/><i style={{height:'94%'}}/></div></div>}</section></div><div className="tip-banner"><span className="tip-icon"><Activity size={18}/></span><div><b>{member?'Small steps, steady growth':'Stay on top of the workflow'}</b><span>{member?'Keep customer details accurate and schedule timely follow-ups.':'Review pending approvals regularly and keep record statuses up to date.'}</span></div></div></>;
 }
 
-export default App;
+function RecordTable({ rows, onSelect, columns, actions }) {
+  if (!rows?.length) return <Empty/>;
+  const keys=columns || ['name','phone','status','amount','createdAt'];
+  return <><div className="table-wrap"><table><thead><tr>{keys.map(k=><th key={k}>{titleCase(k)}</th>)}{actions&&<th>Actions</th>}<th/></tr></thead><tbody>{rows.map((row,i)=><tr key={recordId(row)||i} onClick={()=>onSelect?.(row)}>{keys.map(key=><td key={key}>{key==='status'?<Status value={row[key]}/>:key==='amount'?money(row[key]):key==='createdAt'?date(row[key]):String(row[key] ?? (key==='name'?displayName(row):'—'))}</td>)}{actions&&<td onClick={e=>e.stopPropagation()}>{actions(row)}</td>}<td><button className="row-action" onClick={e=>{e.stopPropagation();onSelect?.(row)}} aria-label="View record"><ChevronRight size={16}/></button></td></tr>)}</tbody></table></div><div className="record-cards">{rows.map((row,i)=><div className="record-card" key={recordId(row)||i} onClick={()=>onSelect?.(row)} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter')onSelect?.(row)}}><span className="record-avatar">{displayName(row).slice(0,1).toUpperCase()}</span><span className="record-main"><b>{displayName(row)}</b><small>{row.phone || row.customerPhone || row.email || row.orderId || row.type || 'RK Solutions record'}</small><small>{row.city || date(row.createdAt)}</small></span><span className="record-end">{row.status&&<Status value={row.status}/>}</span>{actions&&<span className="record-actions" onClick={e=>e.stopPropagation()}>{actions(row)}</span>}<ChevronRight className="record-chevron" size={15}/></div>)}</div></>;
+}
 
+function CreateAdminRecord({ module, onClose, onCreated }) {
+  const defaults = {
+    members: { name: '', phone: '', city: '', status: 'pending' },
+    orders: { customerName: '', customerPhone: '', type: 'membership', amount: '', status: 'pending' },
+    payments: { customerName: '', customerPhone: '', amount: '', method: 'cash', status: 'pending' },
+  };
+  const [form,setForm]=useState(defaults[module]||{}),[busy,setBusy]=useState(false),[error,setError]=useState(''),[created,setCreated]=useState(null);
+  const submit=async e=>{e.preventDefault();setBusy(true);setError('');const body={...form};if('amount' in body)body.amount=Number(body.amount||0);try{const result=await adminApi.create(module,body);setCreated(result);onCreated(result);}catch(err){setError(err.message);}finally{setBusy(false);}};
+  return <div className="modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}><section className="panel create-dialog" role="dialog" aria-modal="true" aria-labelledby="create-title"><div className="panel-heading"><div><span className="eyebrow purple">NEW {module.toUpperCase().replace(/S$/,'')}</span><h2 id="create-title">{created?'Record created':`Create ${module.slice(0,-1)}`}</h2><p>{created?'The backend generated the record identifiers.':'Enter the record details to save it to the backend.'}</p></div><button className="icon-button" onClick={onClose} aria-label="Close"><X size={18}/></button></div><Notice>{error}</Notice>{created?<div className="created-summary"><div><span>Name</span><b>{created.name||created.customerName||'—'}</b></div><div><span>Member ID</span><b>{created.memberId||'—'}</b></div><div><span>Order ID</span><b>{created.orderId||'—'}</b></div><Button onClick={onClose}>Done</Button></div>:<form className="profile-form" onSubmit={submit}><div className="form-grid">{Object.entries(form).map(([key,value])=><label key={key}>{titleCase(key)}{key==='status'?<select value={value} onChange={e=>setForm({...form,[key]:e.target.value})}><option value="pending">Pending</option><option value="processing">Processing</option><option value="completed">Completed</option><option value="paid">Paid</option></select>:<input required={['name','phone','customerName','customerPhone','amount'].includes(key)} type={key==='amount'?'number':key==='email'?'email':key==='phone'||key==='customerPhone'?'tel':'text'} min={key==='amount'?'0':undefined} pattern={key==='phone'||key==='customerPhone'?'[+0-9]{8,15}':undefined} value={value} onChange={e=>setForm({...form,[key]:e.target.value})} placeholder={`Enter ${titleCase(key).toLowerCase()}`}/>}</label>)}</div><div className="helper id-helper">Member ID and order ID are generated automatically; no ID entry is needed.</div><div className="form-actions"><Button kind="secondary" type="button" onClick={onClose}>Cancel</Button><Button disabled={busy}>{busy?'Creating…':'Create record'}</Button></div></form>}</section></div>;
+}
+
+function ModulePage({ module, role, phone, onSelect, refreshToken }) {
+  const [rows,setRows]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[filter,setFilter]=useState('all'),[search,setSearch]=useState('');
+  const [creating,setCreating]=useState(false);
+  const reload=useCallback(()=>{setLoading(true);setError('');const req=role==='member'?memberApi.customers(phone,filter):adminApi.list(module,filter);req.then(data=>setRows(Array.isArray(data)?data:[])).catch(e=>setError(e.message)).finally(()=>setLoading(false));},[module,role,phone,filter]);
+  useEffect(reload,[reload,refreshToken]);
+  const shown=useMemo(()=>rows.filter(r=>JSON.stringify(r).toLowerCase().includes(search.toLowerCase())),[rows,search]);
+  const filters=role==='member'?['all','new','called','interested','joined']:module==='approvals'?['all','pending','approved','rejected']:['all','pending','processing','completed'];
+  const title=role==='member'?'Customers':titleCase(module);
+  const rowActions=module==='approvals'&&role==='admin'?(row)=><div className="approval-actions"><button className="approve-mini" title="Approve" onClick={async()=>{try{await adminApi.approval(recordId(row),{status:'approved',reason:''});reload();}catch(e){setError(e.message);}}}><Check size={14}/><span>Approve</span></button><button className="reject-mini" title="Reject" onClick={async()=>{const reason=window.prompt('Optional reason for rejection:')||'';try{await adminApi.approval(recordId(row),{status:'rejected',reason});reload();}catch(e){setError(e.message);}}}><X size={14}/><span>Reject</span></button></div>:role==='member'?(row)=><button className="called-mini" disabled={String(row.status).toLowerCase()==='called'} onClick={async()=>{try{await memberApi.updateCustomer(phone,recordId(row),{status:'called'});reload();}catch(e){setError(e.message);}}}>{String(row.status).toLowerCase()==='called'?'Called':'Mark called'}</button>:undefined;
+  return <><section className="panel list-panel"><div className="list-controls"><div className="search-box"><Search size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={`Search ${title.toLowerCase()}…`}/>{search&&<button onClick={()=>setSearch('')} aria-label="Clear search"><X size={15}/></button>}</div>{role==='admin'&&['members','orders','payments'].includes(module)&&<Button onClick={()=>setCreating(true)}><Plus size={16}/> Add {module.slice(0,-1)}</Button>}<button className="filter-button"><Filter size={16}/><span>Filter</span></button></div><div className="status-tabs">{filters.map(s=><button key={s} className={filter===s?'selected':''} onClick={()=>setFilter(s)}>{titleCase(s)}</button>)}</div><Notice>{error}</Notice>{loading?<Loading/>:<RecordTable rows={shown} onSelect={onSelect} actions={rowActions}/>}</section>{creating&&<CreateAdminRecord module={module} onClose={()=>setCreating(false)} onCreated={reload}/>}</>;
+}
+
+function TrainingViewer({ resource, onClose }) {
+  if(!resource)return null;
+  const source=resource.videoUrl||resource.documentUrl||resource.url;
+  if(!source)return null;
+  let isVideo=Boolean(resource.videoUrl)||resource.type==='video'||String(resource.contentType||'').startsWith('video/')||/\.(mp4|webm|mov)(\?|$)/i.test(resource.fileName||source);
+  const isImage=String(resource.contentType||'').startsWith('image/')||/\.(png|jpe?g|gif|webp)(\?|$)/i.test(resource.fileName||source);
+  let embedUrl=source;
+  try {
+    const parsed=new URL(source,window.location.origin),host=parsed.hostname.replace(/^www\./,'');
+    if(host==='youtu.be'||host==='youtube.com'||host==='m.youtube.com'||host==='vimeo.com'||host==='player.vimeo.com')isVideo=true;
+    if(host==='youtu.be')embedUrl=`https://www.youtube-nocookie.com/embed/${parsed.pathname.slice(1)}`;
+    else if(host==='youtube.com'||host==='m.youtube.com'){
+      const videoId=parsed.searchParams.get('v')||parsed.pathname.match(/\/(?:embed|shorts)\/([^/]+)/)?.[1];
+      if(videoId)embedUrl=`https://www.youtube-nocookie.com/embed/${videoId}`;
+    } else if(host==='vimeo.com'){
+      const videoId=parsed.pathname.split('/').filter(Boolean).pop();
+      if(videoId&&/^\d+$/.test(videoId))embedUrl=`https://player.vimeo.com/video/${videoId}`;
+    }
+  } catch { }
+  return <section className="panel training-viewer"><div className="panel-heading"><div><h2>{resource.title||'Training resource'}</h2><p>{resource.description||resource.fileName||'Training resource preview'}</p></div><Button kind="secondary" type="button" onClick={onClose}>Close</Button></div><div className="training-preview">{isVideo&&embedUrl!==source?<iframe src={embedUrl} title={resource.title||'Training video'} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/>:isVideo?<video src={source} controls playsInline/>:isImage?<img src={source} alt={resource.title||'Training resource'}/>:<iframe src={source} title={resource.title||'Training document'}/>}</div><a href={source} target="_blank" rel="noreferrer" className="text-link">Open resource in a new tab <ChevronRight size={15}/></a></section>;
+}
+
+function TrainingPage({ items }) {
+  const [selected,setSelected]=useState(null);
+  return <><section className="panel resource-list">{Array.isArray(items)&&items.length?items.map((item,i)=><article className="resource-item" key={recordId(item)||i}><span className="resource-icon"><BookOpen size={19}/></span><div><b>{item.title||item.name||'Training resource'}</b><p>{item.description||item.fileName||'Training resource'}</p><small>{date(item.createdAt)}</small></div>{(item.documentUrl||item.videoUrl||item.url)&&<button type="button" className="text-link" onClick={()=>setSelected(item)}>{item.videoUrl||item.url?'Watch video':'Open document'} <ChevronRight size={15}/></button>}</article>):<Empty title="No training resources yet" detail="New documents and videos will appear here when they are available."/>}</section>{selected&&<TrainingViewer resource={selected} onClose={()=>setSelected(null)}/>}</>;
+}
+
+function AdminTraining() {
+  const [items,setItems]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
+  const [title,setTitle]=useState(''),[description,setDescription]=useState(''),[videoUrl,setVideoUrl]=useState(''),[file,setFile]=useState(null);
+  const [selected,setSelected]=useState(null);
+  const load=useCallback(()=>{setLoading(true);adminApi.list('training').then(rows=>setItems(rows||[])).catch(e=>setError(e.message)).finally(()=>setLoading(false));},[]);
+  useEffect(load,[load]);
+  const submit=async e=>{e.preventDefault();if(!file&&!videoUrl.trim()){setError('Choose a file or enter a video link.');return;}setBusy(true);setError('');setMessage('');const body=new FormData();body.append('title',title);body.append('description',description);if(file)body.append('file',file);if(videoUrl.trim())body.append('videoUrl',videoUrl.trim());try{await adminApi.uploadTrainingDocument(body);setTitle('');setDescription('');setVideoUrl('');setFile(null);e.target.reset();setMessage('Training resource published for members.');load();}catch(e){setError(e.message);}finally{setBusy(false);}};
+  return <><section className="panel profile-panel"><div className="panel-heading"><div><h2>Add training resource</h2><p>Upload a document, add a video link, or include both for members.</p></div></div><Notice>{error}</Notice><Notice type="success">{message}</Notice><form className="profile-form" onSubmit={submit}><div className="form-grid"><label>Title<input required value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Member welcome guide"/></label><label>Upload file<input type="file" onChange={e=>setFile(e.target.files?.[0]||null)} accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.mp4,.mov,.webm"/></label><label className="full-field">Video link<input type="url" value={videoUrl} onChange={e=>setVideoUrl(e.target.value)} placeholder="https://youtube.com/... or https://vimeo.com/..."/></label><label className="full-field">Description<textarea rows="3" value={description} onChange={e=>setDescription(e.target.value)} placeholder="Briefly describe this resource"/></label></div><div className="form-actions"><Button disabled={busy||(!file&&!videoUrl.trim())}>{busy?'Publishing…':'Publish training resource'}</Button></div></form></section><section className="panel resource-list"><div className="panel-heading"><div><h2>Published training</h2><p>Resources currently visible to members.</p></div></div>{loading?<Loading/>:items.length?items.map((item,i)=><article className="resource-item" key={recordId(item)||i}><span className="resource-icon"><BookOpen size={19}/></span><div><b>{item.title||item.name||'Training resource'}</b><p>{item.description||item.fileName||'Training resource'}</p><small>{date(item.createdAt)}</small></div>{(item.documentUrl||item.videoUrl||item.url)&&<button type="button" className="text-link" onClick={()=>setSelected(item)}>Preview resource <ChevronRight size={15}/></button>}</article>):<Empty title="No training resources yet" detail="Add a document or video link above to make it available to members."/>}</section>{selected&&<TrainingViewer resource={selected} onClose={()=>setSelected(null)}/>}</>;
+}
+
+function AdminSettings() {
+  const [rows,setRows]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[message,setMessage]=useState('');
+  const [form,setForm]=useState({key:'',value:'',description:''}),[busy,setBusy]=useState(false),[editingId,setEditingId]=useState('');
+  const load=useCallback(()=>{setLoading(true);adminApi.list('settings').then(items=>setRows((items||[]).filter(row=>row._id!=='admin-profile'))).catch(e=>setError(e.message)).finally(()=>setLoading(false));},[]);
+  useEffect(load,[load]);
+  const save=async e=>{e.preventDefault();setBusy(true);setError('');setMessage('');try{if(editingId)await adminApi.update('settings',editingId,form);else await adminApi.create('settings',form);setForm({key:'',value:'',description:''});setEditingId('');setMessage('App setting saved.');load();}catch(e){setError(e.message);}finally{setBusy(false);}};
+  const edit=row=>{setEditingId(recordId(row));setForm({key:row.key||row.name||'',value:String(row.value??''),description:row.description||''});setMessage('');};
+  const remove=async row=>{if(!window.confirm(`Delete setting “${row.key||row.name||'setting'}”?`))return;try{await adminApi.remove('settings',recordId(row));load();}catch(e){setError(e.message);}};
+  return <><section className="panel profile-panel"><div className="panel-heading"><div><h2>Application settings</h2><p>Manage key and value settings used across the RK Fund app.</p></div></div><Notice>{error}</Notice><Notice type="success">{message}</Notice><form className="profile-form" onSubmit={save}><div className="form-grid"><label>Setting key<input required value={form.key} onChange={e=>setForm({...form,key:e.target.value})} placeholder="e.g. companyName"/></label><label>Value<input required value={form.value} onChange={e=>setForm({...form,value:e.target.value})} placeholder="Enter a value"/></label><label className="full-field">Description<input value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Optional description"/></label></div><div className="form-actions">{editingId&&<Button kind="secondary" type="button" onClick={()=>{setEditingId('');setForm({key:'',value:'',description:''});}}>Cancel edit</Button>}<Button disabled={busy}>{busy?'Saving…':editingId?'Save setting':'Add setting'}</Button></div></form></section><section className="panel list-panel"><div className="panel-heading"><div><h2>Saved settings</h2><p>Application wide configuration values.</p></div></div>{loading?<Loading/>:rows.length?<div className="table-wrap"><table><thead><tr><th>Key</th><th>Value</th><th>Description</th><th>Actions</th></tr></thead><tbody>{rows.map((row,i)=><tr key={recordId(row)||i}><td>{row.key||row.name||'—'}</td><td>{String(row.value??'—')}</td><td>{row.description||'—'}</td><td><button className="text-link" onClick={()=>edit(row)}>Edit</button> <button className="text-link" onClick={()=>remove(row)}>Delete</button></td></tr>)}</tbody></table></div>:<Empty title="No app settings yet" detail="Add a key and value above to configure the application."/>}</section></>;
+}
+
+function AdminProfile({ user, initial }) {
+  const [form,setForm]=useState({name:initial?.name||user?.name||'',phone:initial?.phone||''}),[saving,setSaving]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
+  useEffect(()=>setForm({name:initial?.name||user?.name||'',phone:initial?.phone||''}),[initial,user]);
+  const save=async e=>{e.preventDefault();setSaving(true);setMessage('');setError('');try{const updated=await adminApi.updateProfile(form);setForm({name:updated.name||'',phone:updated.phone||''});setMessage('Profile updated successfully.');}catch(e){setError(e.message);}finally{setSaving(false);}};
+  return <section className="panel profile-panel"><div className="profile-hero"><span className="profile-avatar">{(form.name||initial?.email||'A').slice(0,1).toUpperCase()}</span><div><b>{form.name||'Administrator'}</b><span>Admin account</span></div></div><form className="profile-form" onSubmit={save}><div className="form-grid"><label>Full name<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Email address<input type="email" value={initial?.email||user?.email||''} readOnly/></label><label>Phone number<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="Optional"/></label><label>Access role<input value={initial?.role||user?.role||'ADMIN'} readOnly/></label></div><Notice>{error}</Notice><Notice type="success">{message}</Notice><div className="form-actions"><Button disabled={saving}>{saving?'Saving…':'Save profile'}</Button></div></form></section>;
+}
+
+function GenericPage({ page, role, phone, refreshToken, user }) {
+  const [data,setData]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState('');
+  const module=page==='members'?'members':page==='approvals'?'approvals':page;
+  useEffect(()=>{let req;if(role==='member'){if(page==='wallet')req=memberApi.wallet(phone);else if(page==='training')req=memberApi.training();else if(page==='notifications')req=memberApi.notifications(phone);else if(page==='profile')req=memberApi.profile(phone);}else if(page==='profile'&&role==='admin')req=adminApi.profile();else if(page==='notifications'&&role==='admin')req=adminApi.receivedNotifications();else if(page==='reports')req=adminApi.reportSummary();else if(page!=='settings')req=adminApi.list(module);if(!req){setLoading(false);return;}setLoading(true);setError('');req.then(setData).catch(e=>setError(e.message)).finally(()=>setLoading(false));},[page,role,phone,module,refreshToken]);
+  if(page==='training'&&role==='admin')return <AdminTraining/>;
+  if(page==='settings'&&role==='admin')return <AdminSettings/>;
+  if(['customers','members','approvals','orders','payments'].includes(page))return <ModulePage module={module} role={role} phone={phone} refreshToken={refreshToken}/>;
+  if(loading)return <Loading/>;
+  if(error)return <Notice>{error}</Notice>;
+  if(page==='profile'&&role==='member')return <ProfilePage phone={phone} initial={data} allowPasswordChange={false}/>;
+  if(page==='profile'&&role==='admin')return <AdminProfile user={user} initial={data}/>;
+  if(page==='profile'&&role==='admin')return <section className="panel profile-panel"><div className="profile-hero"><span className="profile-avatar">{(user?.name||user?.email||'A').slice(0,1).toUpperCase()}</span><div><b>{user?.name||'Admin staff'}</b><span>Office staff · Administrator</span></div></div><div className="form-grid profile-readonly"><label>Email address<input value={user?.email||''} readOnly/></label><label>Access role<input value={user?.role||'ADMIN'} readOnly/></label></div><p className="muted">Admin profile editing is not available in the current API.</p></section>;
+  if(page==='reports')return <Stats items={[{label:'Members',value:data?.members??0,icon:Users,note:'All registered members',tone:'purple'},{label:'Orders',value:data?.orders??0,icon:ClipboardList,note:'All recorded orders',tone:'green'},{label:'Paid amount',value:money(data?.paidAmount),icon:CircleDollarSign,note:`${data?.paymentCount??0} payments`,tone:'purple'},{label:'Pending amount',value:money(data?.pendingAmount),icon:CreditCard,note:'Awaiting payment',tone:'orange'}]}/>;
+  if(page==='wallet')return <><Stats items={[{label:'Total earnings',value:money(data?.totalEarnings),icon:CircleDollarSign,note:'All commissions',tone:'green'},{label:'Pending commission',value:money(data?.pendingCommission),icon:Wallet,note:'Awaiting approval',tone:'orange'}]}/><section className="panel list-panel"><div className="panel-heading"><div><h2>Transactions</h2><p>Your commission activity</p></div></div><RecordTable rows={data?.transactions||[]} columns={['name','amount','status','createdAt']}/></section></>;
+  if(page==='training')return <TrainingPage items={data}/>;
+  if(page==='notifications')return <section className="panel resource-list">{Array.isArray(data)&&data.length?data.map((row,i)=><article className="resource-item" key={recordId(row)||i}><span className="resource-icon">{page==='training'?<BookOpen size={19}/>:<Bell size={19}/>}</span><div><b>{row.title||row.name||titleCase(row.type)|| (page==='training'?'Learning resource':'Notification')}</b><p>{row.description||row.message||row.body||row.fileName||'Details will appear here when provided.'}</p><small>{date(row.createdAt)}</small></div>{(row.documentUrl||row.videoUrl||row.url)&&<a href={row.documentUrl||row.videoUrl||row.url} target="_blank" rel="noreferrer" className="text-link">{page==='training'?(row.videoUrl||row.url?'Watch video':'Open document'):'Open'} <ChevronRight size={15}/></a>}</article>):<Empty title={`No ${page} yet`} detail="New items will appear here when they are available."/>}</section>;
+  return <Empty/>;
+}
+
+function ProfilePage({phone,initial,allowPasswordChange}) {const [form,setForm]=useState({name:initial?.name||'',email:initial?.email||'',city:initial?.city||''}),[saving,setSaving]=useState(false),[message,setMessage]=useState(''),[password,setPassword]=useState({currentPassword:'',newPassword:''}),[passwordMessage,setPasswordMessage]=useState(''),[passwordBusy,setPasswordBusy]=useState(false);useEffect(()=>setForm({name:initial?.name||'',email:initial?.email||'',city:initial?.city||''}),[initial]);const save=async e=>{e.preventDefault();setSaving(true);setMessage('');try{await memberApi.updateProfile(phone,form);setMessage('Profile updated successfully.');}catch(err){setMessage(err.message);}finally{setSaving(false);}};const changePassword=async e=>{e.preventDefault();setPasswordBusy(true);setPasswordMessage('');try{await memberApi.changePassword(phone,password);setPasswordMessage('Password changed successfully.');setPassword({currentPassword:'',newPassword:''});}catch(err){setPasswordMessage(err.message);}finally{setPasswordBusy(false);}};return <><section className="panel profile-panel"><div className="profile-hero"><span className="profile-avatar">{(form.name||'M').slice(0,1).toUpperCase()}</span><div><b>{form.name||'Member'}</b><span>Member account</span></div><div className="profile-id"><small>MEMBER ID</small><b>{initial?.memberId||'—'}</b></div></div><form className="profile-form" onSubmit={save}><div className="form-grid"><label>Full name<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Email address<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label><label>Phone number<input value={initial?.phone||phone} readOnly/></label><label>City<input value={form.city} onChange={e=>setForm({...form,city:e.target.value})}/></label></div><Notice type={message.includes('successfully')?'success':'error'}>{message}</Notice><Button disabled={saving}>{saving?'Saving…':'Save changes'}</Button></form></section>{allowPasswordChange&&<section className="panel profile-panel password-panel"><div className="panel-heading"><div><h2>Change password</h2><p>Use your current password to set a new one.</p></div></div><form onSubmit={changePassword} className="profile-form"><div className="form-grid"><label>Current password<input type="password" autoComplete="current-password" required value={password.currentPassword} onChange={e=>setPassword({...password,currentPassword:e.target.value})}/></label><label>New password<input type="password" autoComplete="new-password" minLength="8" required value={password.newPassword} onChange={e=>setPassword({...password,newPassword:e.target.value})}/></label></div><Notice type={passwordMessage.includes('successfully')?'success':'error'}>{passwordMessage}</Notice><Button disabled={passwordBusy}>{passwordBusy?'Updating…':'Update password'}</Button></form></section>}</>; }
+
+function AddCustomer({phone,onDone}) {const [form,setForm]=useState({name:'',phone:'',city:'',interestedIn:'membership',remarks:''}),[busy,setBusy]=useState(false),[error,setError]=useState('');const submit=async e=>{e.preventDefault();setBusy(true);setError('');try{await memberApi.addCustomer(phone,form);onDone();}catch(err){setError(err.message);}finally{setBusy(false);}};return <section className="panel form-panel"><div className="panel-heading"><div><h2>Customer details</h2><p>Add a customer to your member account.</p></div><span className="required-note">* Required</span></div><Notice>{error}</Notice><form className="profile-form" onSubmit={submit}><div className="form-grid"><label>Customer name *<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Enter full name"/></label><label>Phone number *<input required type="tel" pattern="[+0-9]{8,15}" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="Enter phone number"/></label><label>City<input value={form.city} onChange={e=>setForm({...form,city:e.target.value})} placeholder="Enter city"/></label><label>Interested in<select value={form.interestedIn} onChange={e=>setForm({...form,interestedIn:e.target.value})}><option value="membership">Membership</option><option value="handbook">Handbook</option></select></label><label className="full-field">Remarks<textarea rows="4" value={form.remarks} onChange={e=>setForm({...form,remarks:e.target.value})} placeholder="Add a follow-up note (optional)"/></label></div><div className="form-actions"><Button kind="secondary" type="button" onClick={onDone}>Cancel</Button><Button disabled={busy}>{busy?'Saving…':<><Check size={16}/> Save customer</>}</Button></div></form></section>;}
+
+export default function App() {
+  const storedRole=sessionStorage.getItem('rk-role');
+  const [role,setRole]=useState(['admin','member'].includes(storedRole)?storedRole:'');const [page,setPage]=useState('dashboard');const [user,setUser]=useState(JSON.parse(sessionStorage.getItem('rk-user')||'null'));const phone=user?.phone||'';const [dash,setDash]=useState(null),[report,setReport]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[refresh,setRefresh]=useState(0);
+  const loginAdmin=async credentials=>{setBusy(true);setError('');try{const result=await adminApi.login({email:credentials.email,password:credentials.password});const u={name:'Admin staff',email:result.email||credentials.email,role:'ADMIN'};setUser(u);setRole('admin');sessionStorage.setItem('rk-role','admin');sessionStorage.setItem('rk-user',JSON.stringify(u));setPage('dashboard');}catch(e){setError(e.message);}finally{setBusy(false);}};
+  const loginUser=async form=>{setBusy(true);setError('');try{const result=await userApi.login({name:form.name,phone:form.phone});const u={name:result.name,email:result.email,phone:result.phone,memberId:result.memberId,orderId:result.orderId,role:'MEMBER'};setUser(u);setRole('member');sessionStorage.setItem('rk-role','member');sessionStorage.setItem('rk-user',JSON.stringify(u));setPage('dashboard');}catch(e){setError(e.message);}finally{setBusy(false);}};
+  const logout=()=>{sessionStorage.removeItem('rk-role');sessionStorage.removeItem('rk-user');setRole('');setUser(null);setDash(null);setPage('dashboard');};
+  useEffect(()=>{if(!role||page!=='dashboard')return;setDash(null);setReport(null);const req=role==='admin'?adminApi.dashboard():memberApi.dashboard(phone);req.then(setDash).catch(e=>setError(e.message));if(role==='admin')adminApi.reportSummary().then(setReport).catch(()=>{});},[role,page,phone,user,refresh]);
+  if(!role)return <Login onAdmin={loginAdmin} onUser={loginUser} busy={busy} error={error}/>;
+  return <Shell role={role} page={page} setPage={setPage} user={user} onLogout={logout}><Notice>{error}</Notice>{page==='dashboard'?(!dash?(error?<section className="panel retry-panel"><p>Could not load the dashboard.</p><Button onClick={()=>{setError('');setRefresh(n=>n+1);}}>Retry</Button></section>:<Loading/>):<Dashboard role={role} data={dash} report={report} onNavigate={target=>{setPage(target);setError('');}}/>):page==='add-customer'?<AddCustomer phone={phone} onDone={()=>{setPage('customers');setRefresh(n=>n+1);}}/>:<GenericPage key={`${role}-${page}`} page={page} role={role} phone={phone} user={user} refreshToken={refresh}/>}</Shell>;
+}

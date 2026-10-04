@@ -514,16 +514,6 @@ code {
   opacity: 0.9;
 }
 
-.btn-otp {
-  background-color: var(--card);
-  color: var(--primary);
-  border: 1px solid var(--primary);
-}
-
-.btn-otp:hover:not(:disabled) {
-  background-color: rgba(79, 43, 219, 0.05);
-}
-
 .btn-logout {
   background-color: var(--error);
   color: var(--card);
@@ -785,12 +775,6 @@ code {
 .link-forgot:hover {
   color: var(--primary-hover);
   text-decoration: underline;
-}
-
-.otp-input {
-  text-align: center;
-  letter-spacing: 0.5rem;
-  font-size: 1.5rem;
 }
 
 .btn-back {

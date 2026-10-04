@@ -2,7 +2,7 @@ import axios from 'axios';
 import { tokenStorage } from '../utils/tokenStorage';
 import sessionManager from '../utils/sessionManager';
 
-const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://rkbackend-chf2.onrender.com/api/v1';
+const BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

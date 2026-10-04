@@ -5,7 +5,7 @@ import Logo from '../common/Logo';
 import { Icons } from '../common/Icons';
 
 const Login = () => {
-  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState('');
@@ -16,8 +16,8 @@ const Login = () => {
   const from = location.state?.from?.pathname || '/';
 
   const validate = () => {
-    if (!emailOrPhone.trim()) {
-      setFormError('Email or phone is required');
+    if (!email.trim()) {
+      setFormError('Email is required');
       return false;
     }
     if (!password) {
@@ -35,7 +35,7 @@ const Login = () => {
     if (!validate()) return;
 
     try {
-      await login({ emailOrPhone, password });
+      await login({ email, password });
       navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);
@@ -58,19 +58,19 @@ const Login = () => {
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="emailOrUsername" className="form-label">
-              Email or Username
+            <label htmlFor="email" className="form-label">
+              Email address
             </label>
               <input
-                id="emailOrPhone"
-                type="text"
+                id="email"
+                type="email"
                 className={`form-input ${formError ? 'form-input-error' : ''}`}
-                value={emailOrPhone}
+                value={email}
                 onChange={(e) => {
-                  setEmailOrPhone(e.target.value);
+                  setEmail(e.target.value);
                   setFormError('');
                 }}
-                placeholder="Enter your email or phone"
+                placeholder="Enter your email"
                 autoComplete="username"
                 disabled={isLoading}
               />
@@ -121,14 +121,6 @@ const Login = () => {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-
-        <div className="auth-divider">
-          <span className="auth-divider-text">or</span>
-        </div>
-
-        <Link to="/otp-login" className="btn btn-otp">
-          Login with OTP
-        </Link>
 
         <p className="auth-footer">
           Don't have an account?{' '}

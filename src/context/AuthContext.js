@@ -94,56 +94,6 @@ export const AuthProvider = ({ children }) => {
     return login(credentials);
   }, [login]);
 
-  const sendOtp = useCallback(async (phoneOrEmail) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await authApi.sendOtp(phoneOrEmail);
-      return true;
-    } catch (err) {
-      const message = err.response?.data?.message || 'Failed to send OTP';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const verifyOtp = useCallback(async (otpPayload) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await authApi.verifyOtp(
-        otpPayload.phoneOrEmail,
-        otpPayload.otp,
-        { password: otpPayload.password, name: otpPayload.name }
-      );
-      const { accessToken, refreshToken, name, email, phone, role, id, userId } = response;
-      const resolvedId = id || userId || null;
-
-      tokenStorage.setToken(accessToken, 3600);
-      tokenStorage.setRefreshToken(refreshToken);
-
-      const userData = {
-        id: resolvedId || Date.now(),
-        userId: resolvedId,
-        name: name || email,
-        email,
-        phone,
-        role,
-      };
-      setUser(userData);
-      setIsAuthenticated(true);
-      return userData;
-    } catch (err) {
-      const message = err.response?.data?.message || 'Invalid OTP';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   const register = useCallback(async (userData) => {
     setIsLoading(true);
     setError(null);
@@ -246,8 +196,6 @@ export const AuthProvider = ({ children }) => {
         error,
         login,
         loginAdmin,
-        sendOtp,
-        verifyOtp,
         register,
         forgotPassword,
         resetPassword,

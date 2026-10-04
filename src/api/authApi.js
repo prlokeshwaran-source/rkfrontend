@@ -5,16 +5,6 @@ const authApi = {
     return apiClient.post('/auth/login', { emailOrPhone, password }).then((res) => res.data);
   },
 
-  sendOtp(phoneOrEmail) {
-    return apiClient.post('/auth/send-otp', { phoneOrEmail }).then((res) => res.data);
-  },
-
-  verifyOtp(phoneOrEmail, otp, extra = {}) {
-    return apiClient
-      .post('/auth/verify-otp', { phoneOrEmail, otp, ...extra })
-      .then((res) => res.data);
-  },
-
   register(userData) {
     return apiClient.post('/auth/register', userData).then((res) => res.data);
   },

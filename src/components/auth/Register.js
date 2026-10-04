@@ -8,7 +8,6 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     password: '',
     confirmPassword: '',
   });
@@ -34,10 +33,6 @@ const Register = () => {
     }
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
       setFormError('Please enter a valid email address');
-      return false;
-    }
-    if (!formData.phone.trim()) {
-      setFormError('Phone number is required');
       return false;
     }
     if (!formData.password) {
@@ -66,7 +61,6 @@ const Register = () => {
       await register({
         name: formData.name,
         email: formData.email,
-        phone: formData.phone,
         password: formData.password,
       });
       navigate('/');
@@ -120,23 +114,6 @@ const Register = () => {
               onChange={handleChange}
               placeholder="Enter your email"
               autoComplete="email"
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="phone" className="form-label">
-              Phone Number
-            </label>
-            <input
-              id="phone"
-              name="phone"
-              type="tel"
-              className="form-input"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="Enter your phone number"
-              autoComplete="tel"
               disabled={isLoading}
             />
           </div>
@@ -213,14 +190,6 @@ const Register = () => {
             {isLoading ? 'Registering...' : 'Register'}
           </button>
         </form>
-
-        <div className="auth-divider">
-          <span className="auth-divider-text">or</span>
-        </div>
-
-        <Link to="/otp-login" className="btn btn-otp">
-          Register with OTP
-        </Link>
 
         <p className="auth-footer">
           Already have an account?{' '}
