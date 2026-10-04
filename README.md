@@ -5,8 +5,8 @@ Responsive React client for the Spring Boot API in `D:\rkfund`.
 ## Run locally
 
 1. Copy `.env.example` to `.env.local`.
-2. The default `/api` base URL is proxied to `http://localhost:8080` by the React development server.
-3. Start the Spring backend, then run `npm start`.
+2. The frontend uses `https://fundbackend-wsxs.onrender.com/api` by default. Set `REACT_APP_API_BASE_URL` in `.env.local` to use a different API.
+3. Run `npm start`. To use a local backend, set `REACT_APP_API_BASE_URL=http://localhost:8080/api` in `.env.local`.
 
 ## Login and API
 

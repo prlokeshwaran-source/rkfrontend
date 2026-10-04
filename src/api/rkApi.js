@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// CRA proxies /api to the Spring Boot server during local development.
+// REACT_APP_API_BASE_URL selects the backend; CRA proxies /api for local development.
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_BASE_URL || '/api',
   headers: { 'Content-Type': 'application/json' },

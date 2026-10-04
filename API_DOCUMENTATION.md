@@ -1,6 +1,6 @@
 # RK Solutions frontend API reference
 
-Base URL for local development: `http://localhost:8080/api` (the React dev server proxies `/api` to port 8080). Configure `REACT_APP_API_BASE_URL` for another environment. All request bodies are JSON.
+Base URL: `https://fundbackend-wsxs.onrender.com/api`. Configure `REACT_APP_API_BASE_URL` to use another environment. For local development, set it to `http://localhost:8080/api`. All request bodies are JSON.
 
 The React login screen has two choices: **Admin** and **Member**. The member flow uses the registered name and phone number. It does not ask the member to type a member ID or order ID; both are displayed from the API response.
 
